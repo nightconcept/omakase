@@ -1,0 +1,134 @@
+# Compression
+compress() { tar -czf "${1%/}.tar.gz" "${1%/}"; }
+alias decompress="tar -xzf"
+
+# Write iso file to sd card
+iso2sd() {
+  if [ $# -ne 2 ]; then
+    echo "Usage: iso2sd <input_file> <output_device>"
+    echo "Example: iso2sd ~/Downloads/ubuntu-25.04-desktop-amd64.iso /dev/sda"
+    echo -e "\nAvailable SD cards:"
+    lsblk -d -o NAME | grep -E '^sd[a-z]' | awk '{print "/dev/"$1}'
+  else
+    sudo dd bs=4M status=progress oflag=sync if="$1" of="$2"
+    sudo eject $2
+  fi
+}
+
+# Create a desktop launcher for a web app
+web2app() {
+  if [ "$#" -ne 3 ]; then
+    echo "Usage: web2app <AppName> <AppURL> <IconURL> (IconURL must be in PNG -- use https://dashboardicons.com)"
+    return 1
+  fi
+
+  local APP_NAME="$1"
+  local APP_URL="$2"
+  local ICON_URL="$3"
+  local ICON_DIR="$HOME/.local/share/applications/icons"
+  local DESKTOP_FILE="$HOME/.local/share/applications/${APP_NAME}.desktop"
+  local ICON_PATH="${ICON_DIR}/${APP_NAME}.png"
+
+  mkdir -p "$ICON_DIR"
+
+  if ! curl -sL -o "$ICON_PATH" "$ICON_URL"; then
+    echo "Error: Failed to download icon."
+    return 1
+  fi
+
+  cat > "$DESKTOP_FILE" <<EOF
+[Desktop Entry]
+Version=1.0
+Name=$APP_NAME
+Comment=$APP_NAME
+Exec=chromium --new-window --ozone-platform=wayland --app="$APP_URL" --name="$APP_NAME" --class="$APP_NAME"
+Terminal=false
+Type=Application
+Icon=$ICON_PATH
+StartupNotify=true
+EOF
+
+  chmod +x "$DESKTOP_FILE"
+}
+
+web2app-remove() {
+  if [ "$#" -ne 1 ]; then
+    echo "Usage: web2app-remove <AppName>"
+    return 1
+  fi
+
+  local APP_NAME="$1"
+  local ICON_DIR="$HOME/.local/share/applications/icons"
+  local DESKTOP_FILE="$HOME/.local/share/applications/${APP_NAME}.desktop"
+  local ICON_PATH="${ICON_DIR}/${APP_NAME}.png"
+
+  rm "$DESKTOP_FILE"
+  rm "$ICON_PATH"
+}
+
+# Ensure changes to ~/.XCompose are immediately available
+refresh-xcompose() {
+  pkill fcitx5
+  setsid fcitx5 &>/dev/null &
+}
+
+# Ensure that external keyboards that use an fn key has the F keys as the default
+alias fix_fkeys='echo 2 | sudo tee /sys/module/hid_apple/parameters/fnmode'
+
+
+# Display hotkeys in the terminal
+hotkeys() {
+  echo "---Navigation hotkeys---"
+  echo "Super + Space: app launcher"
+  echo "Super + W: close focused window"
+  echo "Super + 1/2/3/4: jump to a workspace"
+  echo "Shift + Super + 1/2/3/4: move window to workspace"
+  echo "Ctrl + 1/2/3/...: jump to browser tab"
+  echo "F11: go full screen on focused window"
+  echo "Super + Arrow: move focus to another window"
+  echo "Super + Shift + Arrow: swap window positions"
+  echo "Super + Equal: grow focused window to the left"
+  echo "Super + Minus: grow focused window to the right"
+  echo "Super + Shift + Equal: grow focused window to the bottom"
+  echo "Super + Shift + Minus: grow focused window to the top"
+  echo ""
+  echo "---Launching apps---"
+  echo "Super + Enter (return): terminal"
+  echo "Super + B: default browser"
+  echo "Super + F: file manager"
+  echo "Super + T: activity monitor (btop)"
+  echo "Super + M: Spotify"
+  echo "Super + Print Screen: color picker"
+  echo "Super + Ctrl + V: clipboard manager"
+  echo ""
+  echo "---Appearance---"
+  echo "Ctrl + Shift + Super + Space: next theme"
+  echo "Ctrl + Super + Space: next background image"
+  echo "Shift + Super + Space: show or hide the top bar (waybar)"
+  echo ""
+  echo "---System---"
+  echo "Super + Escape: lock computer"
+  echo "Shift + Super + Escape: put computer to sleep"
+  echo "Ctrl + Super + Escape: restart computer"
+  echo "Ctrl + Shift + Super + Escape: shutdown computer"
+  echo "Alt + Super + Escape: restart Hyprland"
+  echo ""
+  echo "---Within file manager---"
+  echo "Ctrl + L: go to path"
+  echo "Space: preview file"
+  echo "Backspace: go back one directory"
+  echo ""
+  echo "---Screenshots---"
+  echo "Print Screen: screenshot of a region"
+  echo "Shift + Print Screen: screenshot a window"
+  echo "Ctrl + Print Screen: screenshot an entire monitor"
+}
+
+open() {
+  xdg-open "$@" >/dev/null 2>&1
+}
+
+update() {
+  sudo pacman -Syu
+  yay -Syu
+}
