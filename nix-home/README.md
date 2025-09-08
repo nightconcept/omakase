@@ -38,25 +38,25 @@ nix-env -iA nixgl.auto.nixGLDefault
 
 Clone down this repo:
 ```bash
-git clone https://github.com/RoastBeefer00/nix-home.git
+git clone https://github.com/danny00/nix-home.git
 cd nix-home
 ```
 
-Use vim (or whatever text editor you prefer) to edit `home.nix`, `flake.nix` and `.zshrc` and change the first few lines from `roastbeefer` to your own user:
+Use vim (or whatever text editor you prefer) to edit `home.nix`, `flake.nix` and `.zshrc` and change the first few lines from `danny` to your own user:
 > NOTE: Use command `whoami` if you don't know your username
 
-> NOTE: There are multiple refences to the `roastbeefer` user in this file and others like `.zshrc`... sorry you're gonna have to find and replace these
+> NOTE: There are multiple refences to the `danny` user in this file and others like `.zshrc`... sorry you're gonna have to find and replace these
 ```
-  home.username = "roastbeefer";
-  home.homeDirectory = "/home/roastbeefer";
+  home.username = "danny";
+  home.homeDirectory = "/home/danny";
 
   ...
 
-  export WASMER_DIR="/home/roastbeefer/.wasmer"
+  export WASMER_DIR="/home/danny/.wasmer"
 
   ...
 
-  homeConfigurations."roastbeefer" = home-manager.lib.homeManagerConfiguration {
+  homeConfigurations."danny" = home-manager.lib.homeManagerConfiguration {
 ```
 
 Copy these files to your home config:

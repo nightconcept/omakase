@@ -61,7 +61,7 @@
         tooltip = true;
         format = "{}";
         restart-interval = 300;
-        exec = "/home/roastbeefer/.cargo/bin/weather";
+        exec = "/home/danny/.cargo/bin/weather";
       };
       tray = {
         icon-size = 13;

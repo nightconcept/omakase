@@ -1,5 +1,5 @@
 {
-  description = "Home Manager configuration of danny";
+  description = "Omakase Home Manager Configuration";
 
   inputs = {
     # Specify the source of Home Manager and Nixpkgs.
@@ -20,7 +20,6 @@
       nixpkgs,
       home-manager,
       nixvim,
-      # flake-parts,
       ...
     }:
     let

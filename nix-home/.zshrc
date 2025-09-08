@@ -35,13 +35,13 @@ function update() {
 }
 
 # Wasmer
-export WASMER_DIR="/home/roastbeefer/.wasmer"
+export WASMER_DIR="/home/danny/.wasmer"
 [ -s "$WASMER_DIR/wasmer.sh" ] && source "$WASMER_DIR/wasmer.sh"
 
 eval $(thefuck --alias)
 
 # The next line updates PATH for the Google Cloud SDK.
-if [ -f '/home/roastbeefer/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/home/roastbeefer/Downloads/google-cloud-sdk/path.zsh.inc'; fi
+if [ -f '/home/danny/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/home/danny/Downloads/google-cloud-sdk/path.zsh.inc'; fi
 
 # The next line enables shell command completion for gcloud.
-if [ -f '/home/roastbeefer/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/home/roastbeefer/Downloads/google-cloud-sdk/completion.zsh.inc'; fi
+if [ -f '/home/danny/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/home/danny/Downloads/google-cloud-sdk/completion.zsh.inc'; fi

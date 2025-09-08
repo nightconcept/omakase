@@ -2,8 +2,8 @@
 {
   # Home Manager needs a bit of information about you and the
   # paths it should manage.
-  home.username = "roastbeefer";
-  home.homeDirectory = "/home/roastbeefer";
+  home.username = "danny";
+  home.homeDirectory = "/home/danny";
 
   nixpkgs.config.allowUnfreePredicate = _: true;
 
