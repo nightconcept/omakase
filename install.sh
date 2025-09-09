@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Exit immediately if a command exits with a non-zero status
+set -eE
+
 sudo apt update
 sudo apt upgrade
 sudo apt-get install curl vim -y
