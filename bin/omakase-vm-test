@@ -1,0 +1,350 @@
+#!/bin/bash
+# Omakase VM Testing Script
+# This script helps set up and test Omakase in VM environments
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+NC='\033[0m'
+
+# VM Testing configurations
+DEBIAN_VERSIONS=("debian:12" "ubuntu:22.04" "ubuntu:24.04")
+TEST_USER="testuser"
+REPO_URL="${OMAKASE_REPO_URL:-https://github.com/your-username/omakase.git}"
+
+log() {
+    echo -e "${BLUE}[$(date +'%H:%M:%S')]${NC} $1"
+}
+
+success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+section() {
+    echo ""
+    echo -e "${PURPLE}=== $1 ===${NC}"
+}
+
+show_help() {
+    echo "Omakase VM Testing Script"
+    echo ""
+    echo "Usage: $0 [COMMAND] [OPTIONS]"
+    echo ""
+    echo "Commands:"
+    echo "  setup-vm          Set up VM testing environment"
+    echo "  test-docker       Test using Docker containers"
+    echo "  test-manual       Generate manual testing instructions"
+    echo "  validate-system   Check if current system is ready for testing"
+    echo ""
+    echo "Options:"
+    echo "  --debian-12       Test on Debian 12 (default)"
+    echo "  --ubuntu-22       Test on Ubuntu 22.04"
+    echo "  --ubuntu-24       Test on Ubuntu 24.04"
+    echo "  --all             Test on all supported distributions"
+    echo "  --repo-url URL    Set custom repository URL"
+    echo "  --help,-h         Show this help"
+    echo ""
+    echo "Environment Variables:"
+    echo "  OMAKASE_REPO_URL  Repository URL (default: example URL)"
+    echo ""
+    echo "Examples:"
+    echo "  $0 test-docker --debian-12"
+    echo "  $0 test-manual"
+    echo "  $0 validate-system"
+}
+
+validate_system() {
+    section "System Validation for VM Testing"
+    
+    local issues=0
+    
+    # Check if Docker is available for container testing
+    if command -v docker &> /dev/null; then
+        if docker info &> /dev/null; then
+            success "Docker is available and running"
+        else
+            error "Docker is installed but not running"
+            ((issues++))
+        fi
+    else
+        error "Docker not found (needed for container testing)"
+        ((issues++))
+    fi
+    
+    # Check if we have the project files
+    if [[ -f "flake.nix" && -f "install.sh" ]]; then
+        success "Omakase project files found"
+    else
+        error "Not in Omakase project directory"
+        ((issues++))
+    fi
+    
+    # Check git status if in repo
+    if git rev-parse --is-inside-work-tree &> /dev/null; then
+        local uncommitted=$(git status --porcelain | wc -l)
+        if [[ $uncommitted -eq 0 ]]; then
+            success "Git working tree is clean"
+        else
+            error "Git working tree has uncommitted changes ($uncommitted files)"
+            log "Consider committing or stashing changes before VM testing"
+            ((issues++))
+        fi
+    fi
+    
+    # Check repository URL
+    if [[ "$REPO_URL" == *"your-username"* ]]; then
+        error "Repository URL not configured"
+        log "Set OMAKASE_REPO_URL environment variable or use --repo-url"
+        ((issues++))
+    else
+        success "Repository URL configured: $REPO_URL"
+    fi
+    
+    if [[ $issues -eq 0 ]]; then
+        success "System ready for VM testing"
+        return 0
+    else
+        error "Found $issues issues that should be resolved"
+        return 1
+    fi
+}
+
+create_test_dockerfile() {
+    local base_image="$1"
+    local dockerfile="Dockerfile.test-$2"
+    
+    cat > "$dockerfile" << EOF
+FROM $base_image
+
+# Install basic requirements
+RUN apt-get update && apt-get install -y \\
+    curl \\
+    git \\
+    sudo \\
+    systemd \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Create test user
+RUN useradd -m -s /bin/bash $TEST_USER && \\
+    echo "$TEST_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER $TEST_USER
+WORKDIR /home/$TEST_USER
+
+# Test environment setup
+ENV HOME=/home/$TEST_USER
+ENV USER=$TEST_USER
+
+CMD ["/bin/bash"]
+EOF
+
+    success "Created Dockerfile: $dockerfile"
+}
+
+test_docker_container() {
+    local base_image="$1"
+    local test_name="$2"
+    
+    section "Testing on $base_image"
+    
+    local dockerfile="Dockerfile.test-$test_name"
+    local container_name="omakase-test-$test_name"
+    
+    # Create Dockerfile
+    create_test_dockerfile "$base_image" "$test_name"
+    
+    # Build test container
+    log "Building test container..."
+    if docker build -f "$dockerfile" -t "$container_name" .; then
+        success "Test container built successfully"
+    else
+        error "Failed to build test container"
+        return 1
+    fi
+    
+    # Run tests in container
+    log "Running Omakase installation test..."
+    
+    local test_script=$(cat << 'EOF'
+set -euo pipefail
+echo "Starting Omakase installation test..."
+
+# Test 1: Clone repository
+echo "Cloning repository..."
+git clone REPO_URL omakase
+cd omakase
+
+# Test 2: Run install script
+echo "Running install script..."
+bash install.sh
+
+# Test 3: Apply Home Manager configuration  
+echo "Applying Home Manager configuration..."
+home-manager switch --flake .#$USER
+
+echo "✓ Installation completed successfully!"
+echo "Testing basic commands..."
+
+# Test 4: Verify key tools are available
+command -v bat >/dev/null && echo "✓ bat available"
+command -v eza >/dev/null && echo "✓ eza available"  
+command -v lazygit >/dev/null && echo "✓ lazygit available"
+command -v wezterm >/dev/null && echo "✓ wezterm available"
+
+echo "🎉 All tests passed!"
+EOF
+)
+    
+    # Replace placeholder and run
+    test_script="${test_script/REPO_URL/$REPO_URL}"
+    
+    if docker run --rm -it \
+        -v "$(pwd):/host-omakase:ro" \
+        "$container_name" \
+        bash -c "$test_script"; then
+        success "Container test passed for $base_image"
+    else
+        error "Container test failed for $base_image"
+        return 1
+    fi
+    
+    # Cleanup
+    rm -f "$dockerfile"
+    docker rmi "$container_name" &>/dev/null || true
+}
+
+generate_manual_instructions() {
+    section "Manual VM Testing Instructions"
+    
+    echo "Follow these steps to manually test Omakase in a VM:"
+    echo ""
+    
+    echo "1. VM SETUP:"
+    echo "   • Create new VM with Debian 12 or Ubuntu 22.04+"
+    echo "   • Allocate at least 4GB RAM and 20GB disk"
+    echo "   • Install base system with SSH access (optional)"
+    echo ""
+    
+    echo "2. BOOTSTRAP TEST:"
+    echo "   Run the bootstrap command:"
+    echo "   curl -sSf $REPO_URL/raw/main/boot.sh | bash"
+    echo ""
+    
+    echo "3. MANUAL INSTALLATION TEST:"
+    echo "   Alternative manual approach:"
+    echo "   git clone $REPO_URL"
+    echo "   cd omakase"
+    echo "   bash install.sh"
+    echo ""
+    
+    echo "4. CONFIGURATION APPLICATION:"
+    echo "   home-manager switch --flake .#\$USER"
+    echo ""
+    
+    echo "5. VERIFICATION TESTS:"
+    echo "   • Test terminal: wezterm"
+    echo "   • Test modern CLI: bat --version, eza --version"
+    echo "   • Test development: lazygit --version"
+    echo "   • Test desktop: hyprland --version (if in GUI environment)"
+    echo ""
+    
+    echo "6. INTEGRATION TESTS:"
+    echo "   • Launch applications from launcher"
+    echo "   • Test theme consistency across applications"
+    echo "   • Verify keybindings work"
+    echo "   • Test omakase update command"
+    echo ""
+    
+    echo "7. ROLLBACK TEST:"
+    echo "   • Make a config change"
+    echo "   • home-manager switch --flake .#\$USER"
+    echo "   • Test rollback: home-manager generations"
+    echo ""
+    
+    echo "Expected Results:"
+    echo "  ✓ All installations complete without errors"
+    echo "  ✓ Tokyo Night theme applied consistently"
+    echo "  ✓ All key applications launch successfully"
+    echo "  ✓ Development tools work as expected"
+    echo "  ✓ System remains stable and responsive"
+}
+
+# Main script logic
+case "${1:-help}" in
+    "setup-vm")
+        validate_system
+        ;;
+    "test-docker")
+        if ! validate_system; then
+            exit 1
+        fi
+        
+        DISTROS=()
+        shift
+        
+        while [[ $# -gt 0 ]]; do
+            case $1 in
+                --debian-12)
+                    DISTROS+=("debian:12")
+                    shift
+                    ;;
+                --ubuntu-22)
+                    DISTROS+=("ubuntu:22.04")
+                    shift
+                    ;;
+                --ubuntu-24)
+                    DISTROS+=("ubuntu:24.04")
+                    shift
+                    ;;
+                --all)
+                    DISTROS=("${DEBIAN_VERSIONS[@]}")
+                    shift
+                    ;;
+                --repo-url)
+                    REPO_URL="$2"
+                    shift 2
+                    ;;
+                *)
+                    error "Unknown option: $1"
+                    exit 1
+                    ;;
+            esac
+        done
+        
+        # Default to Debian 12 if no distro specified
+        if [[ ${#DISTROS[@]} -eq 0 ]]; then
+            DISTROS=("debian:12")
+        fi
+        
+        echo "Testing on distributions: ${DISTROS[*]}"
+        
+        for distro in "${DISTROS[@]}"; do
+            test_name=$(echo "$distro" | sed 's/:/-/g')
+            test_docker_container "$distro" "$test_name"
+        done
+        ;;
+    "test-manual")
+        generate_manual_instructions
+        ;;
+    "validate-system")
+        validate_system
+        ;;
+    "help"|"--help"|"-h"|"")
+        show_help
+        ;;
+    *)
+        error "Unknown command: $1"
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac

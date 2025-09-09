@@ -18,85 +18,152 @@ home-manager switch --flake .#danny: Full Omarchy-inspired configuration
 omakase update: Custom script for easy maintenance
 ```
 
-## Phase 1: Bootstrap Infrastructure
+## Phase 1: Bootstrap Infrastructure ✅ **COMPLETED**
 
-### Task 1.1: Create Distribution-Agnostic boot.sh
-- [ ] Detect Debian-based OS (Debian, Ubuntu, Pop!_OS, etc.)
-- [ ] Auto-detect package manager (apt/apt-get) and adjust accordingly
-- [ ] Handle distribution-specific package names and repositories
-- [ ] Update repo references to omakase
-- [ ] Add error handling for unsupported systems
-- [ ] Test on: Debian 12, Ubuntu 22.04+, Pop!_OS 22.04+
+### Task 1.1: Create Distribution-Agnostic boot.sh ✅ **COMPLETED**
+- [x] Detect Debian-based OS (Debian, Ubuntu, Pop!_OS, etc.)
+- [x] Auto-detect package manager (apt/apt-get) and adjust accordingly
+- [x] Handle distribution-specific package names and repositories
+- [x] Update repo references to omakase
+- [x] Add error handling for unsupported systems
+- [x] Comprehensive logging with color output
+- **🧪 DRY RUN CHECKPOINT**: `bash boot.sh --help` (should show help without executing)
+- **🧪 VM TEST CHECKPOINT**: Test full boot.sh execution on clean Debian 12 VM
 
-### Task 1.2: Enhance install.sh  
-- [ ] Add error handling and logging
-- [ ] Install essential Debian packages first:
-  ```bash
-  sudo apt install -y curl wget git vim build-essential
+### Task 1.2: Enhance install.sh for Distribution-Agnostic Pure Nix ✅ **COMPLETED**
+- [x] **Username flexibility**: Prompt for username with `$USER` as default
+- [x] **Minimal base layer**: Install only `curl git` via package manager
+- [x] **Distribution detection**: Support Debian, Ubuntu, Fedora, openSUSE, Arch, etc.
+- [x] **Pure Nix approach**: All system integration via user services + Nix packages
+- [x] Add error handling and logging with fallback strategies
+- [x] Add Nix channel setup for unstable (for newer packages)
+- [x] Configure Nix settings for optimal performance  
+- [x] Add nixGL setup verification
+- [x] Add Home Manager flake mode setup for any username
+- [x] Apply configuration: `home-manager switch --flake ".#$USERNAME"`
+- [x] Create omakase update script
+- **🧪 DRY RUN CHECKPOINT**: `bash install.sh --dry-run` (if implemented)
+- **🧪 VM TEST CHECKPOINT**: Test full install.sh on clean Debian 12 VM
+
+### Task 1.3: Create Folder Structure ✅ **COMPLETED**
+- [x] Create applications/ directory structure:
   ```
-- [ ] Add Nix channel setup for unstable (for newer packages)
-- [ ] Configure Nix settings for optimal performance
-- [ ] Add nixGL setup verification
-- [ ] Add Home Manager flake mode setup
+  applications/
+  ├── nixvim/          # Neovim with own flake
+  ├── wezterm/         # Terminal 
+  ├── waybar/          # Status bar
+  ├── zsh/             # Shell with p10k
+  ├── hyprland/        # Window manager
+  ├── mako/            # Notifications
+  └── walker/          # Launcher
+  ```
+- [x] Create root-level modules/ directory structure:
+  ```
+  modules/
+  ├── desktop.nix         # Desktop environment setup
+  ├── development.nix     # Dev tools  
+  ├── hardware.nix        # Hardware support (brightness, bluetooth, etc.)
+  ├── audio.nix          # PipeWire user services
+  ├── themes.nix         # Theme management (Tokyo Night default)
+  └── default.nix        # Import all modules + applications
+  ```
+- [x] Create home/ directory structure:
+  ```
+  home/
+  └── home.nix           # Main home config (imports ../modules)
+  ```
+- [x] Create bin/ directory for utility scripts (omakase-*)
+- [x] Create config/ directory for system configs (environment.d, systemd)
+- **🧪 DRY RUN CHECKPOINT**: `find . -name "*.nix" -type f | head -10` (verify structure exists)
+- **🧪 SYNTAX CHECK**: `nix-instantiate --parse modules/default.nix` (verify Nix syntax)
 
-### Task 1.3: Create Developer-Optimized flake.nix Structure
-- [ ] Define main flake.nix with cutting-edge inputs:
+### Task 1.4: Create Developer-Optimized flake.nix Structure ✅ **COMPLETED**
+- [x] Define main flake.nix with cutting-edge inputs:
   - **nixpkgs-unstable** (bleeding-edge everything)
   - **home-manager** (latest features)
   - **nixvim** (modern Neovim experience)
   - **hyprland flake** (absolute latest compositor)
   - **devenv** (modern development environments)
-- [ ] Set up homeConfigurations for "danny" user (expandable to multiple profiles)
-- [ ] Configure modular import structure for easy customization
-- [ ] Add flake-utils for potential multi-platform future
-- [ ] Optimize for fast builds and caching
+  - **nixpkgs-wayland**, **nixgl**, **catppuccin** (additional modern inputs)
+- [x] Set up homeConfigurations for "danny" user (expandable to multiple profiles)
+- [x] Configure integration flow: flake.nix → home/home.nix → ../modules/default.nix → ../applications/*/default.nix
+- [x] Support any username via homeConfigurations."$USERNAME"
+- [x] Add flake-utils for potential multi-platform future
+- [x] Optimize for fast builds and caching with overlays and cross-platform support
+- [x] Add development shells, packages, and CI checks
+- **🧪 DRY RUN CHECKPOINT**: `nix flake check --no-build` (validate flake structure)
+- **🧪 BUILD TEST**: `nix build .#homeConfigurations.danny.activationPackage --dry-run`
+- **🧪 VM TEST CHECKPOINT**: Full Home Manager switch test on clean VM
+
+---
+
+## **🧪 PHASE 1 TESTING CHECKLIST**
+
+Before proceeding to Phase 2, verify Phase 1 works completely:
+
+### **Dry Run Tests (Safe - No System Changes)**
+1. **Structure Verification**:
+   ```bash
+   find . -name "*.nix" -type f | wc -l  # Should show multiple .nix files
+   ls applications/*/default.nix         # Should show 7 application modules
+   ls modules/*.nix                      # Should show 6 module files
+   ```
+
+2. **Syntax Validation**:
+   ```bash
+   nix flake check --no-build            # Validate flake structure
+   nix-instantiate --parse flake.nix     # Check main flake syntax
+   nix-instantiate --parse modules/default.nix  # Check module imports
+   ```
+
+3. **Build Validation (No Apply)**:
+   ```bash
+   nix build .#homeConfigurations.danny.activationPackage --dry-run
+   home-manager build --flake .#danny --dry-run
+   ```
+
+### **🖥️ VM Testing Requirements**
+**CRITICAL**: Test on fresh Debian 12 VM before using on main system:
+
+1. **Bootstrap Test**:
+   ```bash
+   curl -sSf https://raw.githubusercontent.com/your-repo/omakase/main/boot.sh | bash
+   ```
+
+2. **Manual Test**:
+   ```bash
+   git clone https://github.com/your-repo/omakase.git
+   cd omakase
+   bash install.sh
+   ```
+
+3. **Verification**:
+   - All packages install without errors
+   - Home Manager configuration applies successfully  
+   - Tokyo Night theme is active
+   - omakase update command works
+
+---
 
 ## Phase 2: Package Installation Strategy
 
-### Task 2.1: Debian Base Packages (install.sh)
-Install system-critical packages via apt first:
-
+### Task 2.1: Pure Nix Package Strategy  
+**Minimal Base Layer (distribution package manager):**
 ```bash
-# Core system utilities
-sudo apt install -y \
-  curl wget git vim zsh \
-  firefox-esr \
-  nautilus nautilus-extension-sushi \
-  gnome-calculator pavucontrol \
-  evince mpv imv \
-  wireplumber pamixer playerctl \
-  brightnessctl \
-  xdg-desktop-portal-gtk \
-  gnome-keyring polkit-gnome \
-  avahi-daemon avahi-utils \
-  power-profiles-daemon \
-  imagemagick ffmpegthumbnailer \
-  cups system-config-printer \
-  unzip \
-  less man-db tldr \
-  ufw \
-  python3.13 python3.13-venv \
-  lua5.4 \
-  podman podman-compose podman-docker
+# Bootstrap essentials only - distribution agnostic
+sudo apt install -y curl git      # Debian/Ubuntu
+sudo dnf install -y curl git      # Fedora  
+sudo zypper install -y curl git   # openSUSE
+sudo pacman -S curl git           # Arch
 ```
 
-**Fonts (Debian):**
-```bash
-sudo apt install -y \
-  fonts-inter \
-  fonts-source-sans \
-  fonts-source-serif \
-  fonts-noto-core \
-  fonts-noto-color-emoji
-```
-
-**Themes (Debian):**
-```bash  
-sudo apt install -y \
-  gnome-themes-extra \
-  qt5-style-kvantum \
-  yaru-theme-icon
-```
+**Everything Else via Nix (modules/*):**
+- [ ] **System Integration** (`modules/desktop.nix`): Desktop portals, polkit via user services
+- [ ] **Audio System** (`modules/audio.nix`): PipeWire + WirePlumber as user services  
+- [ ] **Hardware Support** (`modules/hardware.nix`): Brightness, bluetooth, power management
+- [ ] **Applications**: All GUI and CLI apps via `applications/*/default.nix`
+- [ ] **Fonts**: All fonts via Home Manager font configuration
+- [ ] **Development**: All dev tools, languages, containers via Nix
 
 ### Task 2.2: Nix/Home Manager Packages
 Configure in `home.nix` and modules:
@@ -135,35 +202,47 @@ Configure in `home.nix` and modules:
 
 ## Phase 3: Configuration Architecture
 
-### Task 3.1: Create Nix Module Structure
+### Task 3.1: Create Application Module Pattern
+Each application in `applications/` follows this structure:
 ```
-nix_modules/
-├── default.nix          # Main module imports
-├── desktop/
-│   ├── hyprland.nix     # Hyprland config
-│   ├── waybar.nix       # Status bar
-│   ├── mako.nix         # Notifications  
-│   └── default.nix      # Desktop module imports
-├── applications/
-│   ├── wezterm.nix      # Terminal config
-│   ├── firefox.nix      # Browser settings (if any)
-│   └── default.nix      # App imports
-├── development/
-│   ├── nixvim.nix       # Neovim configuration  
-│   ├── git.nix          # Git configuration
-│   └── default.nix      # Dev imports
-└── system/
-    ├── fonts.nix        # Font configuration
-    ├── gtk.nix          # GTK theming
-    └── default.nix      # System imports
+applications/wezterm/
+├── default.nix          # Home Manager module (programs.wezterm config)
+├── wezterm.lua          # Application config files
+└── themes/              # App-specific theme files (optional)
+
+applications/waybar/
+├── default.nix          # Home Manager module (programs.waybar config)  
+├── config.jsonc         # Waybar configuration
+├── style.css            # Waybar styles
+└── modules/             # Custom waybar modules (optional)
+
+applications/nixvim/
+├── default.nix          # nixvim configuration
+├── config/              # Vim configuration files  
+├── plugins/             # Plugin configurations
+└── keymaps/             # Key mappings
 ```
 
-### Task 3.2: Extract Configurations from Source Systems
+### Task 3.2: Create Root-Level Module Structure
+```
+modules/
+├── desktop.nix      # Desktop environment setup (Hyprland, portals, etc.)
+├── development.nix  # Dev tools and environment (devenv, direnv, git)  
+├── hardware.nix     # Hardware support (brightness, bluetooth, power management)
+├── audio.nix        # PipeWire + WirePlumber user services
+├── themes.nix       # Theme management and switching
+└── default.nix      # Imports all applications: ../applications/*/default.nix
+
+home/
+└── home.nix         # Main home config (imports ../modules)
+```
+
+### Task 3.3: Extract Configurations from Source Systems
 - [ ] **From omarchy/lomarchy**: Extract Hyprland configs, keybindings, themes, waybar configs
 - [ ] **From nix-home**: Reference working Nix module patterns
 - [ ] **From dotfiles-nix**: Use flake architecture patterns
 
-### Task 3.3: Configuration Conversion Strategy
+### Task 3.4: Configuration Conversion Strategy
 - [ ] Convert shell-based configs to Nix expressions
 - [ ] Create modular, toggleable features  
 - [ ] Ensure all configs are declarative and version-controlled
