@@ -123,8 +123,8 @@ install_dependencies() {
 
 # Clone omakase repository
 clone_repository() {
-    # Use custom repo if specified, otherwise default to dannyo/omakase
-    local repo_url="https://github.com/${OMAKASE_REPO:-dannyo/omakase}.git"
+    # Use custom repo if specified, otherwise default to nightconcept/omakase
+    local repo_url="https://github.com/${OMAKASE_REPO:-nightconcept/omakase}.git"
     local target_dir="$HOME/omakase"
     
     log_info "Cloning omakase repository from: $repo_url"

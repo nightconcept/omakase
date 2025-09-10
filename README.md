@@ -4,6 +4,14 @@ Omakase an opinionated configuration inspired by DHH's Omarchy, except for Debia
 
 Omakase is a combination of shell scripts and Nix flakes that will provide Omarchy-like opinions to your Debian install. You can even call Omakase in your own dotfile Nix flake to layer your personal configuration on top.
 
+## Quick Setup
+
+To setup a fresh Debian PC with Omakase, run this single command:
+
+```bash
+bash <(wget -qO- https://raw.githubusercontent.com/nightconcept/omakase/main/boot.sh)
+```
+
 ## License
 
 Omakase is released under the [MIT License](https://opensource.org/licenses/MIT).
