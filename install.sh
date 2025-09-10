@@ -110,12 +110,12 @@ install_nix() {
     fi
     
     # Try Determinate Systems installer first (better for most cases)
-    if curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install; then
+    if curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --yes; then
         log_success "Nix installed successfully using Determinate Systems installer"
     else
         log_warning "Determinate Systems installer failed, trying official installer..."
         # Fallback to official installer with single-user mode for better compatibility
-        if sh <(curl -L https://nixos.org/nix/install) --no-daemon; then
+        if yes | sh <(curl -L https://nixos.org/nix/install) --no-daemon; then
             log_success "Nix installed successfully using official installer"
         else
             die "Failed to install Nix package manager"
@@ -165,7 +165,11 @@ setup_nix_channels() {
     nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
     nix-channel --add https://github.com/nix-community/nixGL/archive/main.tar.gz nixgl
     
-    nix-channel --update || die "Failed to update Nix channels"
+    # Update channels with retry and better error handling
+    if ! nix-channel --update; then
+        log_warning "Channel update failed, trying with --option tarball-ttl 0 to bypass cache..."
+        nix-channel --update --option tarball-ttl 0 || die "Failed to update Nix channels"
+    fi
     
     log_success "Nix channels configured"
 }
