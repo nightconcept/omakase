@@ -104,8 +104,16 @@ install_nix() {
     log_info "Installing Nix package manager..."
     
     # Check if Nix is already installed
-    if command -v nix &>/dev/null; then
+    if command -v nix &>/dev/null || [[ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]] || [[ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]]; then
         log_warning "Nix is already installed, skipping installation"
+        # Source Nix if not already in PATH
+        if ! command -v nix &>/dev/null; then
+            if [[ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]]; then
+                source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+            elif [[ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]]; then
+                source "$HOME/.nix-profile/etc/profile.d/nix.sh"
+            fi
+        fi
         return 0
     fi
     
